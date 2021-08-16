@@ -4,9 +4,7 @@ import joblib
 
 import sys
 import os
-sys.path.append('../..')
 
-#from utils import load_cinema_reviews
 
 import random
 random.seed(42)
@@ -24,9 +22,14 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 
 import matplotlib.pyplot as plt
 
+import keras
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from keras import layers, Sequential
+from keras.layers import Input, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, concatenate, Dropout
+from keras.models import Model
 
-
-df = pd.read_excel(r"C:\Users\jimmy\Desktop\Copia_de_Seguridad\Keepcoding_2\TFB-SmartBot\chatbot\training_chatbot.xlsx")
+df = pd.read_excel(r"training_chatbot.xlsx")
 df.head()
 
 #Gretting classifier
@@ -60,8 +63,6 @@ df["Suggestions"] = df["Intent type"].apply(lambda x: Suggestions(x))
 df_train, df_test = train_test_split(df, train_size=0.8, 
 test_size=0.2, random_state=42, shuffle=True, stratify=df["Intent type"])
 
-df_train["Intent type"].counts()
-df_test["Intent type"].counts()
 
 def processing(df, pretreatment = False, Tfidf = True, cv = None, stopwords = []):
   # Normalizamos y limpiamos el corpus 
@@ -105,43 +106,96 @@ test_size=0.3, random_state=42, shuffle=True, stratify=df_train["Intent type"])
 
 shape= X_train.shape[1]
 
-def create_mlp(shape):
+X_train.sort_indices()
+X_validation.sort_indices()
+#y_train.sort_indices()
+#y_validation.sort_indices()
+
+# Search Intent
+def mlp_greeting(shape):
 # define our MLP network
-  initializer = tf.keras.initializers.RandomUniform(minval=-0.5, maxval=0.5, seed=42)
-  model = Sequential()
-  model.add(Dense(16, input_dim=shape, kernel_initializer = initializer, activation="relu"))
-  model.add(Dropout(0.25))
-  model.add(Dense(8, activation="relu"))
-  model.add(Dropout(0.25))
-  model.add(Dense(4, activation="relu"))
-  model.add(Dropout(0.25))
-  model.add(Dense(2, activation="relu"))
+    initializer = tf.keras.initializers.RandomUniform(minval=-0.5, maxval=0.5, seed=42)
+    model = Sequential()
+    model.add(Dense(16, input_dim=shape, kernel_initializer = initializer, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(8, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(4, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(2, activation="relu"))
 # check to see if the regression node should be added
-    #if regress: 
-  model.add(Dense(1, activation="sigmoid"))
-    #Compile model 
-  opt = tf.keras.optimizers.Adam(learning_rate = 0.001)    
-  model.compile(loss='binary_crossentropy', metrics ="accuracy", optimizer=opt)
+    #if regress:
+    model.add(Dense(1, activation="sigmoid"))
+    #Compile model
+    opt = tf.keras.optimizers.Adam(learning_rate = 0.001)
+    model.compile(loss='binary_crossentropy', metrics ="accuracy", optimizer=opt)
 # return our model
-  return model
+    return model
 
 
+mlp_greeting = mlp_greeting(shape)
+history = mlp_greeting.fit(X_train, np.asarray(y_train["Greeting"]).reshape(-1,1),
+                  validation_data=(X_validation, np.asarray(y_validation["Greeting"]).reshape(-1,1)),
+    epochs=200,
+    workers = 2, use_multiprocessing= True, verbose = 2)
 
-mlp = create_mlp(shape)
-history = mlp.fit(x=X_train, y=y_train["Greeting"],
-    validation_data=(X_validation, y_validation["Greeting"]),
-    epochs=10,
-    workers = -1, use_multiprocessing= True, verbose = 2)
+#Intent Search
+def mlp_search(shape):
+# define our MLP network
+    initializer = tf.keras.initializers.RandomUniform(minval=-0.5, maxval=0.5, seed=42)
+    model = Sequential()
+    model.add(Dense(16, input_dim=shape, kernel_initializer = initializer, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(8, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(4, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(2, activation="relu"))
+# check to see if the regression node should be added
+    #if regress:
+    model.add(Dense(1, activation="sigmoid"))
+    #Compile model
+    opt = tf.keras.optimizers.Adam(learning_rate = 0.001)
+    model.compile(loss='binary_crossentropy', metrics ="accuracy", optimizer=opt)
+# return our model
+    return model
 
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'validation'], loc='upper left')
-plt.show()
 
-dfg
+mlp_search = mlp_search(shape)
+history = mlp_search.fit(X_train, np.asarray(y_train["Search"]).reshape(-1,1),
+                  validation_data=(X_validation, np.asarray(y_validation["Search"]).reshape(-1,1)),
+    epochs=250,
+    workers = 2, use_multiprocessing= True, verbose = 2)
+
+#Intent suggestion
+def mlp_suggestion(shape):
+# define our MLP network
+    initializer = tf.keras.initializers.RandomUniform(minval=-0.5, maxval=0.5, seed=42)
+    model = Sequential()
+    model.add(Dense(16, input_dim=shape, kernel_initializer = initializer, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(8, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(4, activation="relu"))
+    model.add(Dropout(0.25))
+    model.add(Dense(2, activation="relu"))
+# check to see if the regression node should be added
+    #if regress:
+    model.add(Dense(1, activation="sigmoid"))
+    #Compile model
+    opt = tf.keras.optimizers.Adam(learning_rate = 0.001)
+    model.compile(loss='binary_crossentropy', metrics ="accuracy", optimizer=opt)
+# return our model
+    return model
+
+
+mlp_suggestion = mlp_suggestion(shape)
+history = mlp_suggestion.fit(X_train, np.asarray(y_train["Search"]).reshape(-1,1),
+                  validation_data=(X_validation, np.asarray(y_validation["Search"]).reshape(-1,1)),
+    epochs=250,
+    workers = 2, use_multiprocessing= True, verbose = 2)
+
+
 
 
 
