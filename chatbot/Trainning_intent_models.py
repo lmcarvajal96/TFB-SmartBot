@@ -97,6 +97,54 @@ def processing(df, pretreatment = False, Tfidf = True, cv = None, stopwords = []
 df_train, X_train, cv = processing(df_train)
 df_test, X_test = processing(df_test, cv = cv)
 
+y_train = df_train[["Greeting","Search","Suggestions"]]
+y_test = df_test[["Greeting","Search","Suggestions"]]
+
+X_train, X_validation, y_train, y_validation = train_test_split(X_train, y_train, train_size=0.7, 
+test_size=0.3, random_state=42, shuffle=True, stratify=df_train["Intent type"])
+
+shape= X_train.shape[1]
+
+def create_mlp(shape):
+# define our MLP network
+  initializer = tf.keras.initializers.RandomUniform(minval=-0.5, maxval=0.5, seed=42)
+  model = Sequential()
+  model.add(Dense(16, input_dim=shape, kernel_initializer = initializer, activation="relu"))
+  model.add(Dropout(0.25))
+  model.add(Dense(8, activation="relu"))
+  model.add(Dropout(0.25))
+  model.add(Dense(4, activation="relu"))
+  model.add(Dropout(0.25))
+  model.add(Dense(2, activation="relu"))
+# check to see if the regression node should be added
+    #if regress: 
+  model.add(Dense(1, activation="sigmoid"))
+    #Compile model 
+  opt = tf.keras.optimizers.Adam(learning_rate = 0.001)    
+  model.compile(loss='binary_crossentropy', metrics ="accuracy", optimizer=opt)
+# return our model
+  return model
+
+
+
+mlp = create_mlp(shape)
+history = mlp.fit(x=X_train, y=y_train["Greeting"],
+    validation_data=(X_validation, y_validation["Greeting"]),
+    epochs=10,
+    workers = -1, use_multiprocessing= True, verbose = 2)
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'validation'], loc='upper left')
+plt.show()
+
+dfg
+
+
+
 
 
 
