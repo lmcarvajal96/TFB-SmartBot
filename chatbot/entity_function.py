@@ -11,10 +11,10 @@ def getEntities(text):
     doc = nlp(text)
     entities_list = [(X.text, X.label_) for X in doc.ents]
     if len(entities_list)>1:
-        # es una lista si hay más de una entidad
+        # si hay más de una entidad, de vuelve 1 que será identificado como tipo I de error
         entity = 1
     else:
-        # es una tuple si hay valor único
+        # es una tuple si hay valor único, si no encuentra ninguna devolverá 0 que será tipo II de error
         try:
             entity = entities_list[0]
         except IndexError:
